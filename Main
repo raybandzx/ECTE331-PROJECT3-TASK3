@@ -1,0 +1,36 @@
+public class Main {
+
+    public static void main(String[] args) {
+
+        MotorControl motor = new MotorControl();
+
+        LoggerThread logger = new LoggerThread(motor);
+        MotionPlanner planner = new MotionPlanner(motor);
+        SafetyMonitor safety = new SafetyMonitor(motor);
+
+        // 1) Low-priority Logger starts first and acquires the motor
+        //    (motor hold time is 3000ms, so we have a 3s window to work with)
+        logger.start();
+
+        try {
+            Thread.sleep(200); // give Logger time to REQUEST + ACQUIRE first
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // 2) High-priority Safety Monitor starts next and gets BLOCKED
+        //    because Logger currently owns the motor
+        safety.start();
+
+        try {
+            Thread.sleep(200); // let Safety register its REQUEST/blocked state
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // 3) Medium-priority Motion Planner starts and, on a naive scheduler,
+        //    can run/preempt while Safety (higher priority) sits blocked
+        //    behind Logger (lower priority) -> classic priority inversion
+        planner.start();
+    }
+}
