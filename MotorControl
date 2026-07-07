@@ -1,0 +1,43 @@
+public class MotorControl {
+
+    private boolean busy = false;
+
+    public void useMotor(Thread thread) {
+
+        synchronized (this) {
+            long requestTime = System.currentTimeMillis();
+            System.out.println(requestTime + " : " + thread.getName() + " REQUESTED Motor");
+
+            while (busy) {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            busy = true;
+
+            long startTime = System.currentTimeMillis();
+            System.out.println(startTime + " : " + thread.getName() + " ACQUIRED Motor");
+        }
+
+        // IMPORTANT: sleep happens OUTSIDE the synchronized block.
+        // This releases the monitor while "work" is being simulated,
+        // so other threads can actually enter useMotor() and be
+        // observed blocking/waiting during this time.
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        synchronized (this) {
+            long endTime = System.currentTimeMillis();
+            System.out.println(endTime + " : " + thread.getName() + " RELEASED Motor");
+
+            busy = false;
+            notifyAll();
+        }
+    }
+}
